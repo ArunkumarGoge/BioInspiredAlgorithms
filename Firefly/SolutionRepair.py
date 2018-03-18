@@ -15,28 +15,28 @@ temp = random.sample(range(0, noofVM),noofVM)
 temp.sort()
 print(temp)
 
-# z=list(set(temp)-set(x))
-# z.sort()
-# print(z)
-#
-# flag = [0]*noofVM
-# print(flag)
-#
-# for i in range(0,len(x)):
-#     dre=x[i]
-#     if flag[dre]==0:
-#         flag[dre]=1
-#     else:
-#         min=10000
-#         for j in range(0,len(z)):
-#             if(int(math.fabs(z[j]-dre)<min)):
-#                 min=math.fabs(z[j]-dre)
-#                 index=j
-#         dre2=z[index]
-#         flag[dre2]=1
-#         x[i]=z[index]
-#         z.remove(z[index])
-# print(x)
+z=list(set(temp)-set(x))
+z.sort()
+print(z)
+
+flag = [0]*noofVM
+print(flag)
+
+for i in range(0,len(x)):
+    dre=x[i]
+    if flag[dre]==0:
+        flag[dre]=1
+    else:
+        min=10000
+        for j in range(0,len(z)):
+            if(int(math.fabs(z[j]-dre)<min)):
+                min=math.fabs(z[j]-dre)
+                index=j
+        dre2=z[index]
+        flag[dre2]=1
+        x[i]=z[index]
+        z.remove(z[index])
+print(x)
 
 a=list(map(operator.sub,x,temp))
 print(a)

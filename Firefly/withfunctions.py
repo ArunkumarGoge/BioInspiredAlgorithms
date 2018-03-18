@@ -4,7 +4,7 @@ import operator
 
 def createInitialPopulation(noofVM, noofPop):
     pop=[]
-    random.seed(5)
+    random.seed(50)
     for i in range(0, noofPop):
         temp = random.sample(range(0, noofVM), noofVM)
         pop.append(temp)
@@ -32,8 +32,8 @@ def AssignResources(pop,x,noofVM,noofPop):
 def ObjectiveFunction(noofVM, noofPop,popwise):
     physicalused = [0] * noofPop
     for i in range(0, noofPop):
-        # 16 gbram * 24slots = in dell rack server
-        physicalram = 756
+        # 32 gbram * 24slots = in dell rack server
+        physicalram = 768
         physicalcore = 100
         hostedin = 1
         for j in range(0, noofVM):
@@ -43,14 +43,14 @@ def ObjectiveFunction(noofVM, noofPop,popwise):
                 popwise[i][j].append(hostedin)
             else:
                 hostedin = hostedin + 1
-                physicalram = 756
+                physicalram = 768
                 physicalcore = 100
                 physicalcore = physicalcore - popwise[i][j][1]
                 physicalram = physicalram - popwise[i][j][2]
                 popwise[i][j].append(hostedin)
         physicalused[i]=hostedin
-    print(physicalused)
-    print(popwise)
+    # print(physicalused)
+    # print(popwise)
 
 
     wastage = []
@@ -60,33 +60,36 @@ def ObjectiveFunction(noofVM, noofPop,popwise):
         for j in range(0, noofVM):
                 utilizedcpu = utilizedcpu + popwise[i][j][1]
                 utilizedmem = utilizedmem + popwise[i][j][2]
-        cpuwaste = (physicalcore * physicalused[i])-utilizedcpu
-        memwaste = (physicalram * physicalused[i])-utilizedmem
+        cpuwaste = (100 * physicalused[i])-utilizedcpu
+        memwaste = (768 * physicalused[i])-utilizedmem
         temp = [cpuwaste, memwaste]
         wastage.append(temp)
     return wastage
 
-# def compareVMS(A,B,vm):
-#     diff = list(map(operator.sub, A, B))
-#     # print(A)
-#     # print(B)
-#     # print(diff)
-#     for z in range(0, vm):
-#         diff[z] = (diff[z] * diff[z])
-#     # print(diff)
-#     r=math.sqrt(sum(diff))
-#     # print(r)
-#
-#     for i in range(0,vm):
-#         beta=1
-#         gamma=-4
-#         distance=math.fabs(A[i]-B[i])
-#         second=beta*math.exp(gamma*(r*r))*distance
-#         # print(second)
-#         B[i]=B[i]+second+vm
-#         # print(B[i])
-#     # print(B)
-#     return B
+def compareVMS(A,B,vm):
+    diff = list(map(operator.sub, A, B))
+    # print(A)
+    # print(B)
+    # print(diff)
+    for z in range(0, vm):
+        diff[z] = (diff[z] * diff[z])
+    # print(diff)
+    r=math.sqrt(sum(diff))
+    r=r*0.05
+    # print(r)
+
+    for i in range(0,vm):
+        beta=1
+        gamma=-4
+        distance=math.fabs(A[i]-B[i])
+        second=beta*math.exp(gamma*(r*r))*distance
+        # print(second)
+        B[i]=int(B[i]+second+0.5)%vm
+        # print(B[i])
+    # print(B)
+    return B
+
+
 
 # def findDistance(was,n):
 #     dm=[]
@@ -100,10 +103,10 @@ def ObjectiveFunction(noofVM, noofPop,popwise):
 
 
 # problem parameters
-VM=5
+VM=10
 npop=40
 pop=createInitialPopulation(VM,npop)
-# print(pop)
+print(pop)
 randres=createRandomResources(VM)
 # print(randres)
 popwise=AssignResources(pop,randres,VM,npop)
@@ -112,11 +115,11 @@ wastage=ObjectiveFunction(VM, npop,popwise)
 print(wastage)
 
 
-# for i in range(0,npop):
-#     for j in range(0,npop):
-#         if wastage[i][0]<wastage[j][0]:
-#             pop[j]=compareVMS(pop[i],pop[j],VM)
+for i in range(0,npop):
+    for j in range(0,npop):
+        if wastage[i][0]<wastage[j][0]:
+            pop[j]=compareVMS(pop[i],pop[j],VM)
 
 
-# print(pop)
+print(pop)
 
