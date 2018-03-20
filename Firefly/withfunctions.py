@@ -2,6 +2,10 @@ import random
 import math
 import operator
 
+
+#This function will create the initial population without repetitions
+#If noofVM=5 and noofPop=2 then the pop will be [[3, 2, 1, 0, 4], [2, 0, 4, 1, 3]]
+#seed is used to create same set of random variable in each execution
 def createInitialPopulation(noofVM, noofPop):
     pop=[]
     random.seed(50)
@@ -10,10 +14,19 @@ def createInitialPopulation(noofVM, noofPop):
         pop.append(temp)
     return(pop)
 
+#This function will create set of values with repetitions [10, 8, 1, 2, 5] in range 0 t0 10
+#These values decides the resources to be assigned to for individual virtual machine
 def createRandomResources(noofVM):
     x = [random.randint(0, 10) for x in range(0, noofVM)]
     return(x)
 
+#Here we are passing the initially created value from createInitialPopulation() and createRandomResources()
+#pop has [[3, 2, 1, 0, 4], [2, 0, 4, 1, 3]]
+#x has [10, 8, 1, 2, 5]
+#For the above example the VM with id 3 is of aws type 1 and this function will assign the resource
+#For the above example the VM with id 0 is of aws type 10
+#[[3, 2, 4], [2, 1, 2], [1, 48, 192], [0, 96, 384], [4, 8, 32]] [vmid,cpu,ram]
+#The types of virtual machines are extracted from https://aws.amazon.com/ec2/
 def AssignResources(pop,x):
     noofVM=len(pop[1])
     noofPop=len(pop)
@@ -31,6 +44,8 @@ def AssignResources(pop,x):
         popwise.append(entire)
     return popwise
 
+
+#Wastage for individual population is calculated considering there are infinite pyhsical machine
 def ObjectiveFunction(popwise):
     noofVM=len(popwise[1])
     noofPop=len(popwise)
@@ -56,7 +71,6 @@ def ObjectiveFunction(popwise):
     # print(physicalused)
     # print(popwise)
 
-
     wastage = []
     for i in range(0, noofPop):
         utilizedcpu = 0
@@ -70,6 +84,10 @@ def ObjectiveFunction(popwise):
         wastage.append(temp)
     return wastage
 
+
+#Actual firefly algorithm implementation based on the manuscript
+#Yang, Xin-She. "Firefly algorithms for multimodal optimization."
+# International symposium on stochastic algorithms. Springer, Berlin, Heidelberg, 2009.
 def firefly(A,B):
     vm=len(A)
     diff = list(map(operator.sub, A, B))
@@ -86,6 +104,9 @@ def firefly(A,B):
     B=SolutionRepair(B)
     return B
 
+
+#When applying the algorithm the population may end up with repeated values like [4,4,0,1,3]
+#We are using this function to eliminate the repetiton and insert the missing VMid in the repeated place
 def SolutionRepair(x):
     size=len(x)
     temp = random.sample(range(0, size), size)
@@ -112,14 +133,14 @@ def SolutionRepair(x):
 
 
 # problem parameters
-VM=10
-npop=40
+VM=5
+npop=2
 pop=createInitialPopulation(VM,npop)
 print(pop)
 randres=createRandomResources(VM)
 print(randres)
 popwise=AssignResources(pop,randres)
-# print(popwise)
+print(popwise)
 wastage=ObjectiveFunction(popwise)
 print(wastage)
 
