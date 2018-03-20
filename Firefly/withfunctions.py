@@ -14,7 +14,9 @@ def createRandomResources(noofVM):
     x = [random.randint(0, 10) for x in range(0, noofVM)]
     return(x)
 
-def AssignResources(pop,x,noofVM,noofPop):
+def AssignResources(pop,x):
+    noofVM=len(pop[1])
+    noofPop=len(pop)
     popwise=[]
     aws = [[1, 1], [1, 2], [2, 4], [2, 8], [4, 16], [8, 32], [16, 64], [40, 160], [48, 192], [64, 256], [96, 384]]
     for i in range(0, noofPop):
@@ -29,7 +31,9 @@ def AssignResources(pop,x,noofVM,noofPop):
         popwise.append(entire)
     return popwise
 
-def ObjectiveFunction(noofVM, noofPop,popwise):
+def ObjectiveFunction(popwise):
+    noofVM=len(popwise[1])
+    noofPop=len(popwise)
     physicalused = [0] * noofPop
     for i in range(0, noofPop):
         # 32 gbram * 24slots = in dell rack server
@@ -66,40 +70,45 @@ def ObjectiveFunction(noofVM, noofPop,popwise):
         wastage.append(temp)
     return wastage
 
-def compareVMS(A,B,vm):
+def firefly(A,B):
+    vm=len(A)
     diff = list(map(operator.sub, A, B))
-    # print(A)
-    # print(B)
-    # print(diff)
     for z in range(0, vm):
         diff[z] = (diff[z] * diff[z])
-    # print(diff)
     r=math.sqrt(sum(diff))
     r=r*0.05
-    # print(r)
-
     for i in range(0,vm):
         beta=1
         gamma=-4
         distance=math.fabs(A[i]-B[i])
         second=beta*math.exp(gamma*(r*r))*distance
-        # print(second)
         B[i]=int(B[i]+second+0.5)%vm
-        # print(B[i])
-    # print(B)
+    B=SolutionRepair(B)
     return B
 
+def SolutionRepair(x):
+    size=len(x)
+    temp = random.sample(range(0, size), size)
+    temp.sort()
+    z = list(set(temp) - set(x))
+    z.sort()
+    flag = [0] * size
+    for i in range(0, len(x)):
+        dre = x[i]
+        if flag[dre] == 0:
+            flag[dre] = 1
+        else:
+            min = 10000
+            for j in range(0, len(z)):
+                if (int(math.fabs(z[j] - dre) < min)):
+                    min = math.fabs(z[j] - dre)
+                    index = j
+            dre2 = z[index]
+            flag[dre2] = 1
+            x[i] = z[index]
+            z.remove(z[index])
+    return(x)
 
-
-# def findDistance(was,n):
-#     dm=[]
-#     for i in range(0, n):
-#         temp = []
-#         for j in range(0,n):
-#            temp1=abs(was[i][0]-was[j][0])
-#            temp.append(temp1)
-#         dm.append(temp)
-#     return dm
 
 
 # problem parameters
@@ -108,17 +117,17 @@ npop=40
 pop=createInitialPopulation(VM,npop)
 print(pop)
 randres=createRandomResources(VM)
-# print(randres)
-popwise=AssignResources(pop,randres,VM,npop)
+print(randres)
+popwise=AssignResources(pop,randres)
 # print(popwise)
-wastage=ObjectiveFunction(VM, npop,popwise)
+wastage=ObjectiveFunction(popwise)
 print(wastage)
 
 
 for i in range(0,npop):
     for j in range(0,npop):
         if wastage[i][0]<wastage[j][0]:
-            pop[j]=compareVMS(pop[i],pop[j],VM)
+            pop[j]=firefly(pop[i],pop[j])
 
 
 print(pop)
