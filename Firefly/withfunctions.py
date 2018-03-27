@@ -14,11 +14,7 @@ def createInitialPopulation(noofVM, noofPop):
         pop.append(temp)
     return(pop)
 
-#This function will create set of values with repetitions [10, 8, 1, 2, 5] in range 0 t0 10
-#These values decides the resources to be assigned to for individual virtual machine
-def createRandomResources(noofVM):
-    x = [random.randint(0, 10) for x in range(0, noofVM)]
-    return(x)
+
 
 #Here we are passing the initially created value from createInitialPopulation() and createRandomResources()
 #pop has [[3, 2, 1, 0, 4], [2, 0, 4, 1, 3]]
@@ -27,62 +23,52 @@ def createRandomResources(noofVM):
 #For the above example the VM with id 0 is of aws type 10
 #[[3, 2, 4], [2, 1, 2], [1, 48, 192], [0, 96, 384], [4, 8, 32]] [vmid,cpu,ram]
 #The types of virtual machines are extracted from https://aws.amazon.com/ec2/
-def AssignResources(pop,x):
-    noofVM=len(pop[1])
-    noofPop=len(pop)
+def AssignResources(vmseq, x):
+    noofVM=len(vmseq)
     popwise=[]
     aws = [[1, 1], [1, 2], [2, 4], [2, 8], [4, 16], [8, 32], [16, 64], [40, 160], [48, 192], [64, 256], [96, 384]]
-    for i in range(0, noofPop):
-        entire = []
-        for j in range(0, noofVM):
-            vm = pop[i][j]
-            confid = x[vm]
-            cpu = aws[confid][0]
-            ram = aws[confid][1]
-            conf = [vm, cpu, ram]
-            entire.append(conf)
-        popwise.append(entire)
+    entire = []
+    for i in range(0, noofVM):
+        vm = vmseq[i]
+        confid = x[vm]
+        cpu = aws[confid][0]
+        ram = aws[confid][1]
+        conf = [vm, cpu, ram]
+        popwise.append(conf)
     return popwise
 
 
 #Wastage for individual population is calculated considering there are infinite pyhsical machine
-def ObjectiveFunction(popwise):
-    noofVM=len(popwise[1])
-    noofPop=len(popwise)
-    physicalused = [0] * noofPop
-    for i in range(0, noofPop):
-        # 32 gbram * 24slots = in dell rack server
-        physicalram = 768
-        physicalcore = 100
-        hostedin = 1
-        for j in range(0, noofVM):
-            if popwise[i][j][1] <= physicalcore and popwise[i][j][2] <= physicalram:
-                physicalcore = physicalcore - popwise[i][j][1]
-                physicalram = physicalram - popwise[i][j][2]
-                popwise[i][j].append(hostedin)
-            else:
-                hostedin = hostedin + 1
-                physicalram = 768
-                physicalcore = 100
-                physicalcore = physicalcore - popwise[i][j][1]
-                physicalram = physicalram - popwise[i][j][2]
-                popwise[i][j].append(hostedin)
-        physicalused[i]=hostedin
+def ObjectiveFunction(vmseq):
+    noofVM=len(vmseq)
+    utilizedcpu = 0
+    utilizedmem = 0
+    # 32 gbram * 24slots = in dell rack server
+    physicalram = 768
+    physicalcore = 100
+    hostedin = 1
+    for i in range(0, noofVM):
+        utilizedcpu = utilizedcpu + vmseq[i][1]
+        utilizedmem = utilizedmem + vmseq[i][2]
+        if vmseq[i][1] <= physicalcore and vmseq[i][2] <= physicalram:
+            physicalcore = physicalcore - vmseq[i][1]
+            physicalram = physicalram - vmseq[i][2]
+            vmseq[i].append(hostedin)
+        else:
+            hostedin = hostedin + 1
+            physicalram = 768
+            physicalcore = 100
+            physicalcore = physicalcore - vmseq[i][1]
+            physicalram = physicalram - vmseq[i][2]
+            vmseq[i].append(hostedin)
+    physicalused=hostedin
     # print(physicalused)
     # print(popwise)
-
     wastage = []
-    for i in range(0, noofPop):
-        utilizedcpu = 0
-        utilizedmem = 0
-        for j in range(0, noofVM):
-                utilizedcpu = utilizedcpu + popwise[i][j][1]
-                utilizedmem = utilizedmem + popwise[i][j][2]
-        cpuwaste = (100 * physicalused[i])-utilizedcpu
-        memwaste = (768 * physicalused[i])-utilizedmem
-        temp = [cpuwaste, memwaste]
-        wastage.append(temp)
-    return wastage
+    cpuwaste = (100 * physicalused)-utilizedcpu
+    memwaste = (768 * physicalused)-utilizedmem
+    temp = [cpuwaste, memwaste]
+    return temp
 
 
 #Actual firefly algorithm implementation based on the manuscript
@@ -108,7 +94,7 @@ def firefly(A,B):
 #When applying the algorithm the population may end up with repeated values like [4,4,0,1,3]
 #We are using this function to eliminate the repetiton and insert the missing VMid in the repeated place
 def SolutionRepair(x):
-    size=len(x)
+    size = len(x)
     temp = random.sample(range(0, size), size)
     temp.sort()
     z = list(set(temp) - set(x))
@@ -133,23 +119,36 @@ def SolutionRepair(x):
 
 
 # problem parameters
-VM=5
-npop=2
+VM=20
+npop=20
+noofiter=5
+wastage=[0]*npop
 pop=createInitialPopulation(VM,npop)
 print(pop)
-randres=createRandomResources(VM)
-print(randres)
-popwise=AssignResources(pop,randres)
-print(popwise)
-wastage=ObjectiveFunction(popwise)
+popwise=[]
+#This function will create set of values with repetitions [10, 8, 1, 2, 5] in range 0 t0 10
+#These values decides the resources to be assigned to for individual virtual machine
+x = [random.randint(0, 10) for x in range(0, VM)]
+# print(x)
+for i in range(0,npop):
+    popwise.append(AssignResources(pop[i],x))
+# print(popwise)
+for i in range(0,len(popwise)):
+    wastage[i]=ObjectiveFunction(popwise[i])
 print(wastage)
 
+repeat=0
+while(repeat<noofiter):
+    for i in range(0,npop):
+        for j in range(0,npop):
+            if wastage[i][0]<wastage[j][0]:
+                pop[j]=firefly(pop[i],pop[j])
+                temp=AssignResources(pop[j],x)
+                wastage[j]= ObjectiveFunction(temp)
 
-for i in range(0,npop):
-    for j in range(0,npop):
-        if wastage[i][0]<wastage[j][0]:
-            pop[j]=firefly(pop[i],pop[j])
+    print(pop)
+    print(wastage)
+    repeat=repeat+1
 
-
-print(pop)
-
+# print(pop)
+# print(wastage)
